@@ -24,14 +24,14 @@
   }
   header h1 {
     color: #fff;
-    font-size: clamp(1.3rem, 2.8vw, 2rem);
+    font-size: clamp(2rem, 4vw, 3rem);
     font-weight: 700;
     letter-spacing: 0.04em;
   }
   header p {
     color: #8AA5C0;
-    font-size: clamp(0.6rem, 1.1vw, 0.8rem);
-    margin-top: 0.35rem;
+    font-size: clamp(0.9rem, 1.5vw, 1.2rem);
+    margin-top: 0.5rem;
     letter-spacing: 0.06em;
   }
 
@@ -57,15 +57,15 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    width: clamp(130px, 14vw, 175px);
-    height: clamp(155px, 16vw, 205px);
-    border-radius: 18px;
-    border: 2.5px solid;
+    gap: 10px;
+    width: clamp(160px, 17vw, 220px);
+    height: clamp(190px, 20vw, 260px);
+    border-radius: 22px;
+    border: 3px solid;
     opacity: 0;
     transform: translateY(24px) scale(0.95);
     pointer-events: none;
-    padding: 14px 10px 10px;
+    padding: 18px 14px 14px;
   }
 
   .node.show {
@@ -83,8 +83,8 @@
   }
 
   .node-icon {
-    width: clamp(52px, 5.5vw, 72px);
-    height: clamp(52px, 5.5vw, 72px);
+    width: clamp(72px, 8vw, 100px);
+    height: clamp(72px, 8vw, 100px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -96,13 +96,13 @@
   }
 
   .node-title {
-    font-size: clamp(0.72rem, 1.05vw, 0.92rem);
+    font-size: clamp(1rem, 1.4vw, 1.3rem);
     font-weight: 700;
     text-align: center;
     line-height: 1.2;
   }
   .node-sub {
-    font-size: clamp(0.55rem, 0.78vw, 0.68rem);
+    font-size: clamp(0.75rem, 1vw, 0.95rem);
     font-style: italic;
     text-align: center;
     opacity: 0.75;
@@ -110,12 +110,12 @@
   }
 
   .step-desc {
-    width: clamp(130px, 15vw, 185px);
+    width: clamp(160px, 18vw, 230px);
     text-align: center;
-    font-size: clamp(0.5rem, 0.72vw, 0.63rem);
+    font-size: clamp(0.75rem, 1vw, 0.9rem);
     color: #AAC4DD;
-    line-height: 1.45;
-    margin-top: 9px;
+    line-height: 1.5;
+    margin-top: 12px;
     min-height: 2.9em;
     opacity: 0;
   }
@@ -151,13 +151,14 @@
     align-items: center;
     flex-shrink: 0;
     width: clamp(50px, 6vw, 80px);
-    padding-bottom: calc(2.9em + 9px); /* align with nodes (step-desc height offset) */
+    padding-bottom: calc(2.9em + 12px); /* align with nodes (step-desc height offset) */
   }
 
   .arrow-label {
-    font-size: clamp(0.5rem, 0.72vw, 0.63rem);
+    font-size: clamp(0.75rem, 1vw, 0.9rem);
     font-style: italic;
-    margin-bottom: 5px;
+    font-weight: 600;
+    margin-bottom: 6px;
     opacity: 0;
     text-align: center;
   }
@@ -180,11 +181,11 @@
   /* ── footer ──────────────────────────────────────────── */
   .hint {
     position: fixed;
-    bottom: 16px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     color: #8AA5C0;
-    font-size: 0.7rem;
+    font-size: 0.95rem;
     letter-spacing: 0.05em;
     animation: pulse 2s ease-in-out infinite;
     white-space: nowrap;
@@ -193,10 +194,10 @@
 
   .counter {
     position: fixed;
-    bottom: 16px;
-    right: 22px;
+    bottom: 20px;
+    right: 26px;
     color: #8AA5C0;
-    font-size: 0.68rem;
+    font-size: 0.9rem;
   }
 
   @keyframes fadeUp {
