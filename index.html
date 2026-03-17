@@ -2,497 +2,539 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Automation Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    width: 100vw; height: 100vh;
-    background: #0D1B2A;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    overflow: hidden;
-    cursor: pointer;
-    user-select: none;
-  }
+:root {
+  --bg:    #06090F;
+  --c-db:  #22D3EE;
+  --c-rpa: #34D399;
+  --c-api: #A78BFA;
+  --c-ai:  #FB923C;
+  --c-ui:  #F472B6;
+}
 
-  /* ── header ──────────────────────────────────────────── */
-  header {
-    text-align: center;
-    padding-top: 2.5vh;
-    opacity: 0;
-    animation: fadeUp 0.8s ease 0.2s forwards;
-  }
-  header h1 {
-    color: #fff;
-    font-size: clamp(2rem, 4vw, 3rem);
-    font-weight: 700;
-    letter-spacing: 0.04em;
-  }
-  header p {
-    color: #8AA5C0;
-    font-size: clamp(0.9rem, 1.5vw, 1.2rem);
-    margin-top: 0.5rem;
-    letter-spacing: 0.06em;
-  }
+html, body { width: 100%; height: 100%; }
 
-  /* ── pipeline row ────────────────────────────────────── */
-  .pipeline {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    height: calc(100vh - 20vh);
-    padding: 0 2vw;
-  }
+body {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+}
 
-  /* ── nodes ───────────────────────────────────────────── */
-  .node-wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+/* ── DOT GRID ───────── */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
 
-  .node {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: min(240px, 92%);
-    height: clamp(200px, 21vw, 270px);
-    border-radius: 22px;
-    border: 3px solid;
-    opacity: 0;
-    transform: translateY(24px) scale(0.95);
-    pointer-events: none;
-    padding: 18px 14px 14px;
-  }
+/* ── VIGNETTE ───────── */
+.vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 110% 110% at 50% 50%, transparent 30%, rgba(0,0,0,0.72) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
 
-  .node.show {
-    animation: nodeIn 0.55s cubic-bezier(.22,.68,0,1.2) forwards,
-               glow   0.55s ease 0.6s both;
-  }
+/* ── HEADER ─────────── */
+.header {
+  position: fixed;
+  top: 36px;
+  left: 0; right: 0;
+  text-align: center;
+  z-index: 2;
+}
 
-  @keyframes nodeIn {
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
+.eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 14px;
+}
 
-  @keyframes glow {
-    0%   { box-shadow: 0 0  0px 0px var(--c,#fff); }
-    50%  { box-shadow: 0 0 28px 8px var(--c,#fff); }
-    100% { box-shadow: 0 0  0px 0px var(--c,#fff); }
-  }
+.title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2rem, 3.2vw, 3.2rem);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
 
-  /* ── fantastic final glow ────────────────────────────── */
-  @keyframes fantasyGlow {
-    0%   { box-shadow: 0 0 4px 1px var(--c);
-           filter: brightness(1); }
-    50%  { box-shadow: 0 0 16px 5px var(--c), 0 0 36px 12px var(--c);
-           filter: brightness(1.07); }
-    100% { box-shadow: 0 0 4px 1px var(--c);
-           filter: brightness(1); }
-  }
+/* ── PIPELINE ROW ────── */
+.pipeline {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
 
-  .node.final-glow {
-    animation: nodeIn 0.55s cubic-bezier(.22,.68,0,1.2) forwards,
-               fantasyGlow 2s ease-in-out var(--glow-delay, 0s) infinite !important;
-  }
+/* ── NODE CARD ─────────
+   hidden → visible via JS adding .visible
+────────────────────────── */
+.node {
+  width: 250px;
+  flex-shrink: 0;
+  padding: 32px 26px 34px;
+  border-radius: 22px;
+  text-align: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  position: relative;
 
-  .node-icon {
-    width: clamp(72px, 8vw, 100px);
-    height: clamp(72px, 8vw, 100px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .node-icon svg { width: 100%; height: 100%; }
+  opacity: 0;
+  transform: translateY(36px) scale(0.91);
+  filter: blur(8px);
+  transition:
+    opacity     0.52s cubic-bezier(0.22, 1, 0.36, 1),
+    transform   0.58s cubic-bezier(0.34, 1.5, 0.64, 1),
+    filter      0.52s ease;
+}
 
-  .node-title {
-    font-size: clamp(1rem, 1.4vw, 1.3rem);
-    font-weight: 700;
-    text-align: center;
-    line-height: 1.2;
-  }
-  .node-sub {
-    font-size: clamp(0.75rem, 1vw, 0.95rem);
-    font-style: italic;
-    text-align: center;
-    opacity: 0.75;
-    margin-top: -4px;
-  }
+.node.visible {
+  opacity: 1;
+  transform: none;
+  filter: blur(0px);
+}
 
-  .step-desc {
-    width: min(230px, 92%);
-    text-align: center;
-    font-size: clamp(0.75rem, 1vw, 0.9rem);
-    color: #AAC4DD;
-    line-height: 1.5;
-    margin-top: 12px;
-    min-height: 2.9em;
-    opacity: 0;
-  }
-  .step-desc.show { animation: fadeIn 0.5s ease 0.3s forwards; }
+/* top glow bar — color set per node */
+.node::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 22px; right: 22px;
+  height: 2px;
+  border-radius: 0 0 4px 4px;
+  opacity: 0;
+  transition: opacity 0.4s ease 0.28s;
+}
+.node.visible::before { opacity: 1; }
 
-  @keyframes fadeIn { to { opacity: 1; } }
+/* Per-node accent colours (no color-mix) */
+.n-db  { --ac: var(--c-db);  }
+.n-rpa { --ac: var(--c-rpa); }
+.n-api { --ac: var(--c-api); }
+.n-ai  { --ac: var(--c-ai);  }
+.n-ui  { --ac: var(--c-ui);  }
 
-  /* ── node colours ────────────────────────────────────── */
-  .n0 { background:#E6F1FB; border-color:#185FA5; --c:#185FA5; }
-  .n0 .node-title { color:#042C53; } .n0 .node-sub { color:#185FA5; }
+.n-db::before  { background: #22D3EE; box-shadow: 0 0 14px 2px #22D3EE; }
+.n-rpa::before { background: #34D399; box-shadow: 0 0 14px 2px #34D399; }
+.n-api::before { background: #A78BFA; box-shadow: 0 0 14px 2px #A78BFA; }
+.n-ai::before  { background: #FB923C; box-shadow: 0 0 14px 2px #FB923C; }
+.n-ui::before  { background: #F472B6; box-shadow: 0 0 14px 2px #F472B6; }
 
-  .n1 { background:#E1F5EE; border-color:#0F6E56; --c:#0F6E56; }
-  .n1 .node-title { color:#04342C; } .n1 .node-sub { color:#0F6E56; }
+.n-db.visible  { border-color: rgba(34,211,238,0.30); box-shadow: 0 0 0 1px rgba(34,211,238,0.12), 0 0 28px -4px rgba(34,211,238,0.26), 0 8px 28px rgba(0,0,0,0.5); }
+.n-rpa.visible { border-color: rgba(52,211,153,0.30); box-shadow: 0 0 0 1px rgba(52,211,153,0.12), 0 0 28px -4px rgba(52,211,153,0.26), 0 8px 28px rgba(0,0,0,0.5); }
+.n-api.visible { border-color: rgba(167,139,250,0.30); box-shadow: 0 0 0 1px rgba(167,139,250,0.12), 0 0 28px -4px rgba(167,139,250,0.26), 0 8px 28px rgba(0,0,0,0.5); }
+.n-ai.visible  { border-color: rgba(251,146,60,0.30);  box-shadow: 0 0 0 1px rgba(251,146,60,0.12),  0 0 28px -4px rgba(251,146,60,0.26),  0 8px 28px rgba(0,0,0,0.5); }
+.n-ui.visible  { border-color: rgba(244,114,182,0.30); box-shadow: 0 0 0 1px rgba(244,114,182,0.12), 0 0 28px -4px rgba(244,114,182,0.26), 0 8px 28px rgba(0,0,0,0.5); }
 
-  .n2 { background:#EEEDFE; border-color:#534AB7; --c:#534AB7; }
-  .n2 .node-title { color:#26215C; } .n2 .node-sub { color:#534AB7; }
+.node-step {
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ac);
+  opacity: 0.65;
+  margin-bottom: 22px;
+}
 
-  .n3 { background:#FAECE7; border-color:#993C1D; --c:#993C1D; }
-  .n3 .node-title { color:#4A1B0C; } .n3 .node-sub { color:#993C1D; }
+.node-icon {
+  width: 110px; height: 110px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+.n-db  .node-icon { background: rgba(34,211,238,0.12);  border: 1px solid rgba(34,211,238,0.30);  box-shadow: 0 0 40px -4px rgba(34,211,238,0.45), inset 0 0 30px rgba(34,211,238,0.06);  }
+.n-rpa .node-icon { background: rgba(52,211,153,0.12);  border: 1px solid rgba(52,211,153,0.30);  box-shadow: 0 0 40px -4px rgba(52,211,153,0.45), inset 0 0 30px rgba(52,211,153,0.06);  }
+.n-api .node-icon { background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.30); box-shadow: 0 0 40px -4px rgba(167,139,250,0.45), inset 0 0 30px rgba(167,139,250,0.06); }
+.n-ai  .node-icon { background: rgba(251,146,60,0.12);  border: 1px solid rgba(251,146,60,0.30);  box-shadow: 0 0 40px -4px rgba(251,146,60,0.45), inset 0 0 30px rgba(251,146,60,0.06);  }
+.n-ui  .node-icon { background: rgba(244,114,182,0.12); border: 1px solid rgba(244,114,182,0.30); box-shadow: 0 0 40px -4px rgba(244,114,182,0.45), inset 0 0 30px rgba(244,114,182,0.06); }
 
-  .n4 { background:#EAF3DE; border-color:#3B6D11; --c:#3B6D11; }
-  .n4 .node-title { color:#173404; } .n4 .node-sub { color:#3B6D11; }
+.node-icon svg {
+  width: 56px; height: 56px;
+  stroke: var(--ac);
+  fill: none;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 10px var(--ac)) drop-shadow(0 0 24px var(--ac));
+}
 
-  /* ── arrows ──────────────────────────────────────────── */
-  .arrow-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex-shrink: 0;
-    width: clamp(55px, 7vw, 100px);
-    padding-bottom: calc(2.9em + 12px);
-  }
+.node-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: rgba(240,244,255,0.97);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+.node-sub {
+  font-size: 0.74rem;
+  line-height: 1.58;
+  color: rgba(200,210,240,0.48);
+}
 
-  .arrow-label {
-    font-size: clamp(0.75rem, 1vw, 0.95rem);
-    font-style: italic;
-    font-weight: 600;
-    margin-bottom: 6px;
-    opacity: 0;
-    text-align: center;
-  }
+/* ── CONNECTOR ARROW ──── */
+.arrow {
+  width: 96px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
 
-  .arrow-svg { width: 100%; overflow: visible; }
+.arrow-label {
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.3s ease 0.36s, transform 0.3s ease 0.36s;
+}
+.a-extract  .arrow-label { color: #34D399; }
+.a-payload  .arrow-label { color: #A78BFA; }
+.a-enriched .arrow-label { color: #FB923C; }
+.a-decide   .arrow-label { color: #F472B6; }
 
-  .arrow-line {
-    stroke-dasharray: 300;
-    stroke-dashoffset: 300;
-  }
+.arrow.visible .arrow-label {
+  opacity: 0.8;
+  transform: translateY(0);
+}
 
-  .arrow-wrap.show .arrow-label { animation: fadeIn 0.4s ease 0.35s forwards; }
-  .arrow-wrap.show .arrow-line  { animation: drawLine 0.5s cubic-bezier(.4,0,.2,1) forwards; }
-  .arrow-wrap.show .arrowhead   { animation: fadeIn 0.2s ease 0.48s forwards; }
+/* draw-in from left */
+.arrow-svg {
+  width: 100%;
+  display: block;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.48s cubic-bezier(0.65, 0, 0.35, 1);
+  overflow: visible;
+}
+.arrow.visible .arrow-svg {
+  clip-path: inset(0 0% 0 0);
+}
 
-  @keyframes drawLine { to { stroke-dashoffset: 0; } }
-  .arrowhead { opacity: 0; }
+.dash {
+  animation: flowdash 1.1s linear infinite;
+}
+@keyframes flowdash { to { stroke-dashoffset: -22; } }
 
-  /* ── loop-back SVG overlay ───────────────────────────── */
-  #loop-svg {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    pointer-events: none;
-    z-index: 10;
-  }
+/* ── PROGRESS BAR ──────── */
+.prog-wrap {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: rgba(255,255,255,0.05);
+  z-index: 10;
+}
+.prog-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #22D3EE 0%, #34D399 25%, #A78BFA 50%, #FB923C 75%, #F472B6 100%);
+  transition: width 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
+  box-shadow: 0 0 10px rgba(34,211,238,0.8);
+}
 
-  #loop-path {
-    fill: none;
-    stroke: url(#loopGrad);
-    stroke-width: 3;
-    stroke-dasharray: 2000;
-    stroke-dashoffset: 2000;
-    opacity: 0;
-    transition: opacity 0.4s;
-  }
-  #loop-path.show {
-    opacity: 1;
-    animation: drawLoopLine 1.8s cubic-bezier(.4,0,.2,1) forwards;
-  }
-  @keyframes drawLoopLine { to { stroke-dashoffset: 0; } }
+/* ── BOTTOM UI ─────────── */
+.ui-bar {
+  position: fixed;
+  bottom: 18px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  z-index: 10;
+}
 
-  #loop-label {
-    fill: #AAC4DD;
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    font-size: 1rem;
-    font-style: italic;
-    font-weight: 600;
-    text-anchor: middle;
-    opacity: 0;
-    transition: opacity 0.6s ease 1.6s;
-  }
-  #loop-label.show { opacity: 1; }
+.hint-txt {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  animation: breathe 2.8s ease-in-out infinite;
+  transition: opacity 0.2s ease;
+}
+@keyframes breathe { 0%,100%{opacity:.3} 50%{opacity:.65} }
 
-  /* ── footer ──────────────────────────────────────────── */
-  .hint {
-    position: fixed;
-    bottom: 20px; left: 50%;
-    transform: translateX(-50%);
-    color: #8AA5C0;
-    font-size: 0.95rem;
-    letter-spacing: 0.05em;
-    animation: pulse 2s ease-in-out infinite;
-    white-space: nowrap;
-    z-index: 20;
-  }
-  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+.count-txt {
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.2);
+}
 
-  .counter {
-    position: fixed;
-    bottom: 20px; right: 26px;
-    color: #8AA5C0;
-    font-size: 0.9rem;
-    z-index: 20;
-  }
+.f-hint {
+  position: fixed;
+  top: 20px; right: 24px;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.16);
+  z-index: 10;
+}
 
-  @keyframes fadeUp {
-    from { opacity:0; transform:translateY(-12px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
+/* ── SCALE FOR SMALLER SCREENS ── */
+@media (max-width: 1680px) {
+  .pipeline { transform: scale(0.88); transform-origin: center; }
+}
+@media (max-width: 1460px) {
+  .pipeline { transform: scale(0.76); transform-origin: center; }
+}
+@media (max-width: 1240px) {
+  .pipeline { transform: scale(0.64); transform-origin: center; }
+}
 </style>
 </head>
 <body>
 
-<!-- Loop-back SVG overlay -->
-<svg id="loop-svg">
-  <defs>
-    <linearGradient id="loopGrad" x1="100%" y1="0%" x2="0%" y2="0%">
-      <stop offset="0%"   stop-color="#3B6D11"/>
-      <stop offset="50%"  stop-color="#8AA5C0"/>
-      <stop offset="100%" stop-color="#185FA5"/>
-    </linearGradient>
-    <marker id="loop-arrow-head" markerWidth="10" markerHeight="10"
-            refX="5" refY="5" orient="auto">
-      <polygon points="0,0 10,5 0,10" fill="#185FA5"/>
-    </marker>
-  </defs>
-  <path id="loop-path" marker-end="url(#loop-arrow-head)"/>
-  <text id="loop-label">&#8635; Continuous Loop</text>
-</svg>
+<div class="bg-grid"></div>
+<div class="vignette"></div>
 
-<header>
-  <h1>Automation Pipeline</h1>
-  <p>DATABASE &nbsp;›&nbsp; RPA BOT &nbsp;›&nbsp; API CALL &nbsp;›&nbsp; AI AGENT &nbsp;›&nbsp; USER INTERFACE</p>
+<header class="header">
+  <div class="eyebrow">Technical Overview &nbsp;·&nbsp; 2025</div>
+  <h1 class="title">Automation Pipeline</h1>
 </header>
 
 <div class="pipeline">
 
-  <!-- Database -->
-  <div class="node-wrap">
-    <div class="node n0" id="n0">
-      <div class="node-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-             stroke="#185FA5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <ellipse cx="12" cy="5" rx="9" ry="3"/>
-          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-        </svg>
-      </div>
-      <div class="node-title">Database</div>
-      <div class="node-sub">Source Data</div>
+  <!-- ① Database -->
+  <div class="node n-db" id="n-db">
+    <div class="node-step">Step 01</div>
+    <div class="node-icon">
+      <svg viewBox="0 0 24 24">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
     </div>
-    <div class="step-desc" id="d0">Raw records pulled<br>from source systems</div>
+    <div class="node-title">Database</div>
+    <div class="node-sub">Raw structured records & stored procedures</div>
   </div>
 
-  <!-- Arrow 0 -->
-  <div class="arrow-wrap" id="a0">
-    <div class="arrow-label" style="color:#0F6E56">Extract</div>
-    <svg class="arrow-svg" height="20" viewBox="0 0 90 20">
-      <line class="arrow-line" x1="0" y1="10" x2="78" y2="10" stroke="#0F6E56" stroke-width="3"/>
-      <polygon class="arrowhead" points="74,4 90,10 74,16" fill="#0F6E56"/>
+  <!-- Extract → -->
+  <div class="arrow a-extract" id="a-extract">
+    <div class="arrow-label">Extract</div>
+    <svg class="arrow-svg" viewBox="0 0 96 12" height="12">
+      <defs>
+        <linearGradient id="g1" x1="0%" x2="100%">
+          <stop offset="0%" stop-color="#22D3EE"/>
+          <stop offset="100%" stop-color="#34D399"/>
+        </linearGradient>
+        <filter id="glow1" x="-20%" y="-100%" width="140%" height="300%">
+          <feGaussianBlur stdDeviation="2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <line x1="2" y1="6" x2="82" y2="6" stroke="url(#g1)" stroke-width="3"
+            filter="url(#glow1)" opacity="0.4" class="dash" stroke-dasharray="6 4"/>
+      <line x1="2" y1="6" x2="82" y2="6" stroke="url(#g1)" stroke-width="1.5"
+            class="dash" stroke-dasharray="6 4"/>
+      <polyline points="78,3 86,6 78,9" stroke="#34D399" stroke-width="1.6"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
 
-  <!-- RPA Bot -->
-  <div class="node-wrap">
-    <div class="node n1" id="n1">
-      <div class="node-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-             stroke="#0F6E56" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="10" rx="2"/>
-          <circle cx="12" cy="5" r="2"/>
-          <path d="M12 7v4"/>
-          <circle cx="8"  cy="16" r="1" fill="#0F6E56"/>
-          <circle cx="16" cy="16" r="1" fill="#0F6E56"/>
-        </svg>
-      </div>
-      <div class="node-title">RPA Bot</div>
-      <div class="node-sub">Automation</div>
+  <!-- ② RPA Bot -->
+  <div class="node n-rpa" id="n-rpa">
+    <div class="node-step">Step 02</div>
+    <div class="node-icon">
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="11" width="18" height="10" rx="2"/>
+        <circle cx="12" cy="5" r="2"/>
+        <path d="M12 7v4"/>
+        <circle cx="8" cy="16" r="1.3" fill="#34D399" stroke="none"/>
+        <circle cx="16" cy="16" r="1.3" fill="#34D399" stroke="none"/>
+      </svg>
     </div>
-    <div class="step-desc" id="d1">Bot extracts, cleans<br>&amp; structures data</div>
+    <div class="node-title">RPA Bot</div>
+    <div class="node-sub">Extracts, cleans & structures into payloads</div>
   </div>
 
-  <!-- Arrow 1 -->
-  <div class="arrow-wrap" id="a1">
-    <div class="arrow-label" style="color:#534AB7">Payload</div>
-    <svg class="arrow-svg" height="20" viewBox="0 0 90 20">
-      <line class="arrow-line" x1="0" y1="10" x2="78" y2="10" stroke="#534AB7" stroke-width="3"/>
-      <polygon class="arrowhead" points="74,4 90,10 74,16" fill="#534AB7"/>
+  <!-- Payload → -->
+  <div class="arrow a-payload" id="a-payload">
+    <div class="arrow-label">Payload</div>
+    <svg class="arrow-svg" viewBox="0 0 96 12" height="12">
+      <defs>
+        <linearGradient id="g2" x1="0%" x2="100%">
+          <stop offset="0%" stop-color="#34D399"/>
+          <stop offset="100%" stop-color="#A78BFA"/>
+        </linearGradient>
+        <filter id="glow2" x="-20%" y="-100%" width="140%" height="300%">
+          <feGaussianBlur stdDeviation="2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <line x1="2" y1="6" x2="82" y2="6" stroke="url(#g2)" stroke-width="3"
+            filter="url(#glow2)" opacity="0.4" class="dash" stroke-dasharray="6 4"/>
+      <line x1="2" y1="6" x2="82" y2="6" stroke="url(#g2)" stroke-width="1.5"
+            class="dash" stroke-dasharray="6 4"/>
+      <polyline points="78,3 86,6 78,9" stroke="#A78BFA" stroke-width="1.6"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
 
-  <!-- API Call -->
-  <div class="node-wrap">
-    <div class="node n2" id="n2">
-      <div class="node-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-             stroke="#534AB7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="17 1 21 5 17 9"/>
-          <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-          <polyline points="7 23 3 19 7 15"/>
-          <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-        </svg>
-      </div>
-      <div class="node-title">API Call</div>
-      <div class="node-sub">Integration</div>
+  <!-- ③ API Call -->
+  <div class="node n-api" id="n-api">
+    <div class="node-step">Step 03</div>
+    <div class="node-icon">
+      <svg viewBox="0 0 24 24">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
     </div>
-    <div class="step-desc" id="d2">Payload dispatched<br>to third-party APIs</div>
+    <div class="node-title">API Call</div>
+    <div class="node-sub">Dispatches to services with auth & retries</div>
   </div>
 
-  <!-- Arrow 2 -->
-  <div class="arrow-wrap" id="a2">
-    <div class="arrow-label" style="color:#993C1D">Enriched data</div>
-    <svg class="arrow-svg" height="20" viewBox="0 0 90 20">
-      <line class="arrow-line" x1="0" y1="10" x2="78" y2="10" stroke="#993C1D" stroke-width="3"/>
-      <polygon class="arrowhead" points="74,4 90,10 74,16" fill="#993C1D"/>
+  <!-- Enrich → -->
+  <div class="arrow a-enriched" id="a-enriched">
+    <div class="arrow-label">Enrich</div>
+    <svg class="arrow-svg" viewBox="0 0 96 12" height="12">
+      <defs>
+        <linearGradient id="g3" x1="0%" x2="100%">
+          <stop offset="0%" stop-color="#A78BFA"/>
+          <stop offset="100%" stop-color="#FB923C"/>
+        </linearGradient>
+        <filter id="glow3" x="-20%" y="-100%" width="140%" height="300%">
+          <feGaussianBlur stdDeviation="2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <line x1="2" y1="6" x2="82" y2="6" stroke="url(#g3)" stroke-width="3"
+            filter="url(#glow3)" opacity="0.4" class="dash" stroke-dasharray="6 4"/>
+      <line x1="2" y1="6" x2="82" y2="6" stroke="url(#g3)" stroke-width="1.5"
+            class="dash" stroke-dasharray="6 4"/>
+      <polyline points="78,3 86,6 78,9" stroke="#FB923C" stroke-width="1.6"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
 
-  <!-- AI Agent -->
-  <div class="node-wrap">
-    <div class="node n3" id="n3">
-      <div class="node-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-             stroke="#993C1D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9.5 2A2.5 2.5 0 0 0 7 4.5v.5A2.5 2.5 0 0 0 4.5 7.5c0 .8.4 1.5 1 2A2.5 2.5 0 0 0 7 14.5v.5A2.5 2.5 0 0 0 9.5 17.5h5A2.5 2.5 0 0 0 17 15v-.5a2.5 2.5 0 0 0 1.5-4.5A2.5 2.5 0 0 0 17 5v-.5A2.5 2.5 0 0 0 14.5 2h-5z"/>
-          <path d="M12 6v4"/><path d="M10 10h4"/><path d="M12 14v3"/>
-        </svg>
-      </div>
-      <div class="node-title">AI Agent</div>
-      <div class="node-sub">Intelligence</div>
+  <!-- ④ AI Agent -->
+  <div class="node n-ai" id="n-ai">
+    <div class="node-step">Step 04</div>
+    <div class="node-icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M9.5 2A2.5 2.5 0 0 0 7 4.5v.5A2.5 2.5 0 0 0 4.5 7.5c0 .8.4 1.5 1 2A2.5 2.5 0 0 0 7 14.5v.5A2.5 2.5 0 0 0 9.5 17.5h5A2.5 2.5 0 0 0 17 15v-.5a2.5 2.5 0 0 0 1.5-4.5A2.5 2.5 0 0 0 17 5v-.5A2.5 2.5 0 0 0 14.5 2h-5z"/>
+        <path d="M12 6v4"/><path d="M10 10h4"/><path d="M12 14v3"/>
+      </svg>
     </div>
-    <div class="step-desc" id="d3">AI reasons, enriches<br>&amp; decides</div>
+    <div class="node-title">AI Agent</div>
+    <div class="node-sub">Reasons over enriched data via LLMs</div>
   </div>
 
-  <!-- Arrow 3 -->
-  <div class="arrow-wrap" id="a3">
-    <div class="arrow-label" style="color:#3B6D11">Decisions</div>
-    <svg class="arrow-svg" height="20" viewBox="0 0 90 20">
-      <line class="arrow-line" x1="0" y1="10" x2="78" y2="10" stroke="#3B6D11" stroke-width="3"/>
-      <polygon class="arrowhead" points="74,4 90,10 74,16" fill="#3B6D11"/>
+  <!-- Decide → -->
+  <div class="arrow a-decide" id="a-decide">
+    <div class="arrow-label">Decide</div>
+    <svg class="arrow-svg" viewBox="0 0 96 12" height="12">
+      <defs>
+        <linearGradient id="g4" x1="0%" x2="100%">
+          <stop offset="0%" stop-color="#FB923C"/>
+          <stop offset="100%" stop-color="#F472B6"/>
+        </linearGradient>
+        <filter id="glow4" x="-20%" y="-100%" width="140%" height="300%">
+          <feGaussianBlur stdDeviation="2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <line x1="2" y1="6" x2="82" y2="6" stroke="url(#g4)" stroke-width="3"
+            filter="url(#glow4)" opacity="0.4" class="dash" stroke-dasharray="6 4"/>
+      <line x1="2" y1="6" x2="82" y2="6" stroke="url(#g4)" stroke-width="1.5"
+            class="dash" stroke-dasharray="6 4"/>
+      <polyline points="78,3 86,6 78,9" stroke="#F472B6" stroke-width="1.6"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
 
-  <!-- User Interface -->
-  <div class="node-wrap">
-    <div class="node n4" id="n4">
-      <div class="node-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-             stroke="#3B6D11" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2"/>
-          <path d="M8 21h8"/><path d="M12 17v4"/>
-        </svg>
-      </div>
-      <div class="node-title">User Interface</div>
-      <div class="node-sub">Dashboard</div>
+  <!-- ⑤ User Interface -->
+  <div class="node n-ui" id="n-ui">
+    <div class="node-step">Step 05</div>
+    <div class="node-icon">
+      <svg viewBox="0 0 24 24">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <path d="M8 21h8"/><path d="M12 17v4"/>
+      </svg>
     </div>
-    <div class="step-desc" id="d4">Insights surfaced<br>to the end user</div>
+    <div class="node-title">User Interface</div>
+    <div class="node-sub">Interactive dashboard for insights & action</div>
   </div>
 
 </div>
 
-<div class="hint" id="hint">Click anywhere to begin &nbsp;·&nbsp; or press Space / &rarr;</div>
-<div class="counter" id="counter"></div>
+<!-- Progress bar -->
+<div class="prog-wrap"><div class="prog-fill" id="pbar"></div></div>
+
+<!-- Bottom UI -->
+<div class="ui-bar">
+  <span class="hint-txt" id="hint">Click anywhere to begin &nbsp;·&nbsp; Space / →</span>
+  <span class="count-txt" id="ctr"></span>
+</div>
+
+<div class="f-hint">F — fullscreen</div>
 
 <script>
-  const glowDelays = [0, 0.3, 0.6, 0.9, 1.2];
+const steps = [
+  { id: 'n-db',       label: 'Database'       },
+  { id: 'a-extract',  label: 'Extract'        },
+  { id: 'n-rpa',      label: 'RPA Bot'        },
+  { id: 'a-payload',  label: 'Payload'        },
+  { id: 'n-api',      label: 'API Call'       },
+  { id: 'a-enriched', label: 'Enrich'         },
+  { id: 'n-ai',       label: 'AI Agent'       },
+  { id: 'a-decide',   label: 'Decide'         },
+  { id: 'n-ui',       label: 'User Interface' },
+];
 
-  const steps = [
-    () => { show('n0'); show('d0'); },
-    () => { show('a0'); },
-    () => { show('n1'); show('d1'); },
-    () => { show('a1'); },
-    () => { show('n2'); show('d2'); },
-    () => { show('a2'); },
-    () => { show('n3'); show('d3'); },
-    () => { show('a3'); },
-    () => { show('n4'); show('d4'); },
-    () => { revealLoop(); triggerFinalGlow(); },
-  ];
+let i = 0;
+const pbar = document.getElementById('pbar');
+const hint = document.getElementById('hint');
+const ctr  = document.getElementById('ctr');
 
-  const labels = [
-    'Database', 'Extract arrow', 'RPA Bot', 'Payload arrow',
-    'API Call', 'Enriched data arrow', 'AI Agent', 'Decisions arrow',
-    'User Interface', 'Complete — loop & glow'
-  ];
-
-  let step = 0;
-
-  function show(id) {
-    document.getElementById(id).classList.add('show');
+function advance() {
+  if (i >= steps.length) return;
+  document.getElementById(steps[i].id).classList.add('visible');
+  i++;
+  pbar.style.width = (i / steps.length * 100) + '%';
+  ctr.textContent = i + ' / ' + steps.length;
+  if (i >= steps.length) {
+    hint.style.opacity = '0';
+  } else {
+    hint.style.opacity = '0';
+    setTimeout(() => {
+      hint.textContent = 'Next: ' + steps[i].label + '  ·  click or Space / →';
+      hint.style.opacity = '';
+    }, 120);
   }
+}
 
-  function triggerFinalGlow() {
-    ['n0','n1','n2','n3','n4'].forEach((id, i) => {
-      const node = document.getElementById(id);
-      node.style.setProperty('--glow-delay', glowDelays[i] + 's');
-      node.classList.add('final-glow');
-    });
-  }
-
-  function revealLoop() {
-    const n0r = document.getElementById('n0').getBoundingClientRect();
-    const n4r = document.getElementById('n4').getBoundingClientRect();
-
-    // Start: bottom-center of n4 (right), End: bottom-center of n0 (left)
-    const sx = n4r.left + n4r.width / 2;
-    const sy = n4r.bottom + 8;
-    const ex = n0r.left + n0r.width / 2;
-    const ey = n0r.bottom + 8;
-
-    // Curve dips well below both nodes
-    const dip = Math.min(window.innerHeight - 24, Math.max(sy, ey) + 160);
-    const mx  = (sx + ex) / 2;
-
-    const d = `M ${sx} ${sy} C ${sx} ${dip}, ${ex} ${dip}, ${ex} ${ey}`;
-
-    const path  = document.getElementById('loop-path');
-    const label = document.getElementById('loop-label');
-
-    path.setAttribute('d', d);
-
-    const len = path.getTotalLength();
-    path.style.strokeDasharray = len;
-    path.style.strokeDashoffset = len;
-    path.classList.add('show');
-
-    label.setAttribute('x', mx);
-    label.setAttribute('y', dip + 22);
-    label.classList.add('show');
-  }
-
-  function advance() {
-    if (step >= steps.length) return;
-    steps[step]();
-    step++;
-    const hint    = document.getElementById('hint');
-    const counter = document.getElementById('counter');
-    counter.textContent = step + ' / ' + steps.length;
-    if (step >= steps.length) {
-      hint.style.opacity = '0';
-    } else {
-      hint.textContent = 'Next: ' + labels[step] + '  ·  click or Space / \u2192';
-    }
-  }
-
-  document.body.addEventListener('click', advance);
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault(); advance();
-    }
-    if (e.key === 'f' || e.key === 'F') {
-      document.documentElement.requestFullscreen?.();
-    }
-  });
+document.body.addEventListener('click', advance);
+document.addEventListener('keydown', e => {
+  if ([' ', 'ArrowRight', 'Enter'].includes(e.key)) { e.preventDefault(); advance(); }
+  if (e.key.toLowerCase() === 'f') document.documentElement.requestFullscreen?.();
+});
 </script>
-
 </body>
 </html>
